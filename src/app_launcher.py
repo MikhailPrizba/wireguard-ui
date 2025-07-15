@@ -29,7 +29,7 @@ class AppInfo(NamedTuple):
 class AppLauncherDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Запустить приложение вне VPN")
+        self.setWindowTitle("Launch app outside VPN")
         self.setMinimumSize(400, 500)
 
         self.apps: list[AppInfo] = []
@@ -38,7 +38,7 @@ class AppLauncherDialog(QDialog):
         layout = QVBoxLayout(self)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Поиск приложений...")
+        self.search_input.setPlaceholderText("Search applications...")
         self.search_input.textChanged.connect(self._filter_apps)
         layout.addWidget(self.search_input)
 
@@ -48,7 +48,8 @@ class AppLauncherDialog(QDialog):
         layout.addWidget(self.list_widget)
 
         button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
@@ -153,7 +154,10 @@ class AppLauncherDialog(QDialog):
         # We use Popen to run in the background without blocking the GUI
         # shell=True is required for the complex command with pipes and command substitution
         subprocess.Popen(
-            command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            command,
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
     def exec(self) -> int:

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-WireGuard core: минимальные привилегии, root-helper и вся «бизнес-логика».
-"""
+"""WireGuard core: minimal privileges, root helper and all business logic."""
 
 from __future__ import annotations
 
@@ -19,7 +17,7 @@ _VALID_WG_NAME: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
 def _start_root_helper() -> None:
-    """Запускает этот же файл в режиме root-helper (через pkexec)."""
+    """Launch this file in root-helper mode via pkexec."""
     global _ROOT_HELPER
     if _ROOT_HELPER is not None:
         return
@@ -33,7 +31,7 @@ def _start_root_helper() -> None:
     )
 
 
-def _root_helper_main() -> None:  # запускается из pkexec
+def _root_helper_main() -> None:  # launched via pkexec
     def _reply(**payload: str | int | None) -> None:
         print(json.dumps(payload, ensure_ascii=False), flush=True)
 
@@ -42,11 +40,19 @@ def _root_helper_main() -> None:  # запускается из pkexec
             break
         try:
             cmd = json.loads(line)
-            if not isinstance(cmd, list) or not all(isinstance(x, str) for x in cmd):
-                _reply(error="Некорректный формат запроса")
+            if not isinstance(cmd, list) or not all(
+                isinstance(x, str) for x in cmd
+            ):
+                _reply(error="Invalid request format")
                 continue
-            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            _reply(stdout=proc.stdout, stderr=proc.stderr, returncode=proc.returncode)
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, check=False
+            )
+            _reply(
+                stdout=proc.stdout,
+                stderr=proc.stderr,
+                returncode=proc.returncode,
+            )
         except Exception as exc:  # pylint: disable=broad-except
             _reply(error=str(exc))
     sys.exit(0)
@@ -56,39 +62,44 @@ def _root_helper_main() -> None:  # запускается из pkexec
 def _run_command(
     cmd: list[str], *, use_root: bool = False
 ) -> tuple[str | None, str | None]:
-    """Выполняет *cmd*. При use_root=True делегирует helper’у."""
+    """Execute *cmd*. Delegate to helper when use_root=True."""
     if use_root:
         _start_root_helper()
         helper = _ROOT_HELPER
         if helper is None or helper.stdin is None or helper.stdout is None:
-            return None, "Не удалось поднять root-процесс."
+            return None, "Failed to start root process."
         try:
             json.dump(cmd, helper.stdin)
             helper.stdin.write("\n")
             helper.stdin.flush()
             line = helper.stdout.readline()
             if not line:
-                return None, "root-процесс неожиданно завершён."
+                return None, "Root process exited unexpectedly."
             result = json.loads(line)
             if result.get("error") is not None:
                 return None, str(result["error"])
             if result.get("returncode", 1) != 0:
-                return None, result.get(
-                    "stderr"
-                ) or f"Код выхода: {result.get('returncode')}"
+                return (
+                    None,
+                    result.get("stderr")
+                    or f"Код выхода: {result.get('returncode')}",
+                )
             return result.get("stdout", "").strip(), None
         except Exception as exc:  # pylint: disable=broad-except
-            return None, f"IPC-ошибка: {exc}"
+            return None, f"IPC error: {exc}"
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if proc.returncode != 0:
-            return None, proc.stderr.strip() or f"Код выхода: {proc.returncode}"
+            return (
+                None,
+                proc.stderr.strip() or f"Код выхода: {proc.returncode}",
+            )
         return proc.stdout.strip(), None
     except FileNotFoundError:
-        return None, f"Исполняемый файл '{cmd[0]}' не найден."
+        return None, f"Executable '{cmd[0]}' not found."
     except Exception as exc:  # pylint: disable=broad-except
-        return None, f"Неизвестная ошибка: {exc}"
+        return None, f"Unknown error: {exc}"
 
 
 # ───────── основной класс ───────── #
@@ -142,10 +153,10 @@ class WireGuard:
         src = Path(file_path)
         dest = Path("/etc/wireguard") / src.name
         if not self.VALID_WG_NAME.fullmatch(src.stem):
-            raise ValueError("Недопустимое имя файла.")
+            raise ValueError("Invalid file name.")
         _, exists_err = _run_command(["test", "-e", str(dest)], use_root=True)
         if exists_err is None:
-            raise FileExistsError("Файл уже существует.")
+            raise FileExistsError("File already exists.")
         _, err = _run_command(
             ["install", "-m", "600", str(src), str(dest)], use_root=True
         )
@@ -154,10 +165,10 @@ class WireGuard:
 
     def tunnel_info(self, name: str) -> str:
         out, err = _run_command(["wg", "show", name], use_root=True)
-        return err or out or "Не удалось получить информацию."
+        return err or out or "Failed to get information."
 
 
-# экспортируем внутренние утилиты, нужные GUI
+# export internal utilities needed by GUI
 __all__ = [
     "WireGuard",
     "_start_root_helper",
@@ -165,9 +176,9 @@ __all__ = [
     "_run_command",
 ]
 
-# entry-point для pkexec
+# entry point for pkexec
 if __name__ == "__main__":
     if "--root-helper" in sys.argv:
         _root_helper_main()
     else:
-        print("wireguard_core: библиотека; запускайте main.py", file=sys.stderr)
+        print("wireguard_core: library; run main.py", file=sys.stderr)

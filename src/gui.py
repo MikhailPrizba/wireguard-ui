@@ -57,9 +57,13 @@ class MainWindow(QWidget):
         self.resize(460, 380)
 
         base_dir = Path(__file__).resolve().parent  # каталог, где лежит текущий .py
-        icon_path = base_dir / "icons" / "icon.ico"
-        if icon_path.exists():
-            self.setWindowIcon(QIcon(str(icon_path)))
+        themed_icon = QIcon.fromTheme("wireguard-ui")
+        if not themed_icon.isNull():
+            self.setWindowIcon(themed_icon)
+        else:
+            icon_path = base_dir / "icons" / "icon.png"
+            if icon_path.exists():
+                self.setWindowIcon(QIcon(str(icon_path)))
 
         root = QVBoxLayout(self)
 

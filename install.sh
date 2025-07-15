@@ -21,13 +21,17 @@ install_pkg wireguard
 install_pkg firejail
 
 group=novpn
-user=${SUDO_USER:-$USER}
+user=${SUDO_USER:-${USER:-}}
+skip_user_setup=false
+if [[ -z "$user" || "$user" == "root" ]]; then
+    skip_user_setup=true
+fi
 
 if ! getent group "$group" >/dev/null; then
     groupadd "$group"
 fi
 
-if ! id -nG "$user" | grep -qw "$group"; then
+if ! $skip_user_setup && ! id -nG "$user" | grep -qw "$group"; then
     gpasswd -a "$user" "$group"
 fi
 
@@ -44,7 +48,7 @@ if ! grep -q "uidrange $gid-$gid" "$rule_file" 2>/dev/null; then
 fi
 
 session_type=${XDG_SESSION_TYPE:-$(loginctl show-session $XDG_SESSION_ID -p Type --value 2>/dev/null || echo "")}
-if [[ "$session_type" == "x11" || "$session_type" == "wayland" ]]; then
+if [[ "$skip_user_setup" == false && ("$session_type" == "x11" || "$session_type" == "wayland") ]]; then
     if command -v xhost >/dev/null && [ -n "${DISPLAY:-}" ]; then
         sudo -u "$user" xhost +SI:localuser:root || true
     fi

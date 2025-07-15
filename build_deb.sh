@@ -37,13 +37,17 @@ chmod 755 "$pkg_dir/DEBIAN/postinst"
 
 cat > "$pkg_dir/usr/bin/${pkg}" <<'SCRIPT'
 #!/bin/bash
-# drop root privileges if accidentally launched as root
+# re-launch under the regular user if started as root
 if [[ $EUID -eq 0 ]]; then
-    user="${SUDO_USER:-${PKEXEC_UID:-}}"
+    user="${SUDO_USER:-}"
+    if [[ -z $user && -n ${PKEXEC_UID:-} ]]; then
+        user=$(id -nu "$PKEXEC_UID" 2>/dev/null || echo "")
+    fi
+    if [[ -z $user ]]; then
+        user=$(logname 2>/dev/null || echo "")
+    fi
     if [[ -z $user ]]; then
         user=$(awk -F: '$3>=1000 && $1!="nobody"{print $1; exit}' /etc/passwd)
-    else
-        user=$(id -nu "$user" 2>/dev/null || echo "")
     fi
     exec sudo -u "$user" -E python3 /usr/share/wireguard-ui/src/main.py "$@"
 else

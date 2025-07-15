@@ -55,3 +55,11 @@ if [[ "$skip_user_setup" == false && ("$session_type" == "x11" || "$session_type
 fi
 
 echo "Setup complete."
+
+# Fix the application's .desktop file to avoid running as root when launched
+# from the desktop menu. Removes possible `pkexec` or `sudo` wrappers in the
+# Exec line if present.
+desktop_file="/usr/share/applications/wireguard-ui.desktop"
+if [ -f "$desktop_file" ]; then
+    /usr/share/wireguard-ui/patch_desktop_exec.sh "$desktop_file" || true
+fi

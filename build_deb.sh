@@ -27,6 +27,7 @@ CONTROL
 
 cp -r src "$pkg_dir/usr/share/${pkg}/"
 install -m 755 install.sh "$pkg_dir/usr/share/${pkg}/install.sh"
+install -m 755 patch_desktop_exec.sh "$pkg_dir/usr/share/${pkg}/patch_desktop_exec.sh"
 
 cat > "$pkg_dir/DEBIAN/postinst" <<'POSTINST'
 #!/bin/bash

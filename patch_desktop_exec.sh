@@ -1,11 +1,12 @@
 #!/bin/bash
-# Fix .desktop Exec line to remove pkexec or sudo prefixes
+# Fix .desktop Exec line by removing pkexec/sudo wrappers and any
+# environment variable assignments.
 # Usage: ./patch_desktop_exec.sh /path/to/file.desktop
-set -e
+set -euo pipefail
 
-file="$1"
-if [[ -z "$file" || ! -f "$file" ]]; then
-    echo "Usage: $0 /path/to/file.desktop" >&2
+file="${1:?Usage: $0 /path/to/file.desktop}"
+if [[ ! -f $file ]]; then
+    echo "File '$file' not found" >&2
     exit 1
 fi
 
@@ -15,11 +16,14 @@ if [[ -z "$exec_line" ]]; then
 fi
 
 cmd=${exec_line#Exec=}
-# remove leading pkexec or sudo and trailing arguments like pkexec env ...
+# remove optional pkexec/sudo prefixes
 cmd=${cmd#pkexec }
 cmd=${cmd#sudo }
-# remove 'env ' if used with pkexec env
-if [[ $cmd == env* ]]; then
+# strip "env" wrapper if present
+if [[ $cmd == env\ * ]]; then
     cmd=${cmd#env }
 fi
+# drop leading VAR=value assignments
+cmd=$(printf '%s\n' "$cmd" | sed -E 's/^([A-Za-z_][A-Za-z0-9_]*=[^ ]* ?)*//')
+
 sed -i "s|^Exec=.*|Exec=$cmd|" "$file"

@@ -10,7 +10,7 @@ Run the provided `install.sh` as root to install required packages and configure
 sudo ./install.sh
 ```
 
-The script installs the `wireguard` and `firejail` packages, creates the `novpn` group and adds your user to it, configures an IP rule for that group, and allows root GUI applications via `xhost` for both X11 and Wayland sessions. When run during package installation and no non-root user is detected, user-specific steps are skipped automatically. The installer also invokes `patch_desktop_exec.sh` which removes any `sudo` or `pkexec` prefixes from the program's `.desktop` file so the GUI starts as your normal user.
+The script installs the `wireguard` and `firejail` packages, creates the `novpn` group and adds your user to it, configures an IP rule for that group, and allows root GUI applications via `xhost` for both X11 and Wayland sessions. When run during package installation and no non-root user is detected, user-specific steps are skipped automatically. The installer also invokes `patch_desktop_exec.sh`, which strips any `sudo`/`pkexec` wrapper and related environment assignments from the program's `.desktop` entry so the GUI starts as your normal user.
 
 When installing the Debian package built with `build_deb.sh`, this setup script
 is executed automatically so no additional steps are required.

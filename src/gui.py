@@ -45,9 +45,7 @@ class TunnelRow(QWidget):
         lay.addStretch(1)
 
     def mark_active(self, active: bool) -> None:
-        self.label.setText(
-            self.orig_name + (self._ACTIVE_MARKER if active else "")
-        )
+        self.label.setText(self.orig_name + (self._ACTIVE_MARKER if active else ""))
 
 
 # ───────── main window ───────── #
@@ -58,7 +56,8 @@ class MainWindow(QWidget):
         self.setWindowTitle("WireGuard UI (secure)")
         self.resize(460, 380)
 
-        icon_path = Path(__file__).with_name("icons/icon.ico")
+        base_dir = Path(__file__).resolve().parent  # каталог, где лежит текущий .py
+        icon_path = base_dir / "icons" / "icon.ico"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
@@ -87,9 +86,7 @@ class MainWindow(QWidget):
         )
         tool(
             QIcon.fromTheme("list-add")
-            or self.style().standardIcon(
-                QStyle.StandardPixmap.SP_FileDialogNewFolder
-            ),
+            or self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder),
             "Load WireGuard config",
             self._load_config,
         )
@@ -105,12 +102,8 @@ class MainWindow(QWidget):
 
         # list
         self.list_widget = QListWidget()
-        self.list_widget.setContextMenuPolicy(
-            Qt.ContextMenuPolicy.CustomContextMenu
-        )
-        self.list_widget.customContextMenuRequested.connect(
-            self._show_ctx_menu
-        )
+        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._show_ctx_menu)
         root.addWidget(self.list_widget)
 
         # bottom buttons
@@ -210,9 +203,7 @@ class MainWindow(QWidget):
         conf = Path("/etc/wireguard") / f"{name}.conf"
         _, err = _run_command(["test", "-e", str(conf)], use_root=True)
         if err:
-            QMessageBox.warning(
-                self, "WireGuard", "File not found or no access."
-            )
+            QMessageBox.warning(self, "WireGuard", "File not found or no access.")
             return
 
         # 1. Open WITHOUT root via GVFS backend admin://
@@ -228,9 +219,7 @@ class MainWindow(QWidget):
         _, err = _run_command(cmd, use_root=True)
 
         if err:
-            QMessageBox.critical(
-                self, "WireGuard", "Failed to start editor.\n" + err
-            )
+            QMessageBox.critical(self, "WireGuard", "Failed to start editor.\n" + err)
 
     # ───────── UI slots ───────── #
     def _connect_selected(self) -> None:
@@ -280,13 +269,9 @@ class MainWindow(QWidget):
     def _show_active_info(self) -> None:
         active = self.wg.active_interfaces()
         if not active:
-            QMessageBox.information(
-                self, "WireGuard", "No active connections."
-            )
+            QMessageBox.information(self, "WireGuard", "No active connections.")
             return
-        QMessageBox.information(
-            self, "WireGuard", self.wg.tunnel_info(active[0])
-        )
+        QMessageBox.information(self, "WireGuard", self.wg.tunnel_info(active[0]))
 
     def _show_app_launcher(self) -> None:
         dialog = AppLauncherDialog(self)

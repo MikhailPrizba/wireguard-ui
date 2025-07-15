@@ -51,7 +51,16 @@ Terminal=false
 Categories=Network;
 DESKTOP
 
-install -m 644 src/icons/icon.ico "$pkg_dir/usr/share/icons/hicolor/256x256/apps/${pkg}.ico"
+install -m 644 src/icons/icon.png "$pkg_dir/usr/share/icons/hicolor/256x256/apps/${pkg}.png"
+
+cat >> "$pkg_dir/DEBIAN/postinst" <<'POSTINST_EXTRA'
+if command -v update-desktop-database >/dev/null; then
+    update-desktop-database -q || true
+fi
+if command -v gtk-update-icon-cache >/dev/null; then
+    gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+fi
+POSTINST_EXTRA
 
 dpkg-deb --build "$pkg_dir" "$build_dir/${pkg}_${version}_all.deb"
 

@@ -208,14 +208,18 @@ class MainWindow(QWidget):
 
         # 1. Open WITHOUT root via GVFS backend admin://
 
-        cmd = [
-            "env",
-            f"DISPLAY={os.environ.get('DISPLAY')}",
-            f"XAUTHORITY={os.environ.get('XAUTHORITY')}",
-            f"DBUS_SESSION_BUS_ADDRESS={os.environ.get('DBUS_SESSION_BUS_ADDRESS', '')}",
-            "xdg-open",
-            str(conf),
-        ]
+        cmd = ["env"]
+        for var in (
+            "DISPLAY",
+            "XAUTHORITY",
+            "DBUS_SESSION_BUS_ADDRESS",
+            "WAYLAND_DISPLAY",
+            "XDG_RUNTIME_DIR",
+        ):
+            val = os.environ.get(var)
+            if val:
+                cmd.append(f"{var}={val}")
+        cmd.extend(["xdg-open", str(conf)])
         _, err = _run_command(cmd, use_root=True)
 
         if err:

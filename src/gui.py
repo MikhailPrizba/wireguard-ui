@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Графический интерфейс WireGuard с правым-кликом по туннелю:
-Подключиться | Отключиться | Переименовать | Изменить конфиг.
-"""
+"""Graphical WireGuard interface with right click on a tunnel:
+Connect | Disconnect | Rename | Edit config."""
 
 from __future__ import annotations
 
@@ -32,9 +30,9 @@ from app_launcher import AppLauncherDialog
 from wireguard_core import WireGuard, _run_command
 
 
-# ───────── строка списка ───────── #
+# ───────── list row ───────── #
 class TunnelRow(QWidget):
-    _ACTIVE_MARKER: Final[str] = " [АКТИВЕН]"
+    _ACTIVE_MARKER: Final[str] = " [ACTIVE]"
 
     def __init__(self, name: str) -> None:
         super().__init__()
@@ -47,10 +45,12 @@ class TunnelRow(QWidget):
         lay.addStretch(1)
 
     def mark_active(self, active: bool) -> None:
-        self.label.setText(self.orig_name + (self._ACTIVE_MARKER if active else ""))
+        self.label.setText(
+            self.orig_name + (self._ACTIVE_MARKER if active else "")
+        )
 
 
-# ───────── главное окно ───────── #
+# ───────── main window ───────── #
 class MainWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
@@ -64,9 +64,9 @@ class MainWindow(QWidget):
 
         root = QVBoxLayout(self)
 
-        # верхняя панель
+        # top panel
         top = QHBoxLayout()
-        self.status_label = QLabel("Статус: обновление…")
+        self.status_label = QLabel("Status: updating…")
         top.addWidget(self.status_label)
         top.addStretch(1)
 
@@ -82,51 +82,57 @@ class MainWindow(QWidget):
 
         tool(
             self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload),
-            "Обновить список и статус",
+            "Refresh list and status",
             self._refresh,
         )
         tool(
             QIcon.fromTheme("list-add")
-            or self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder),
-            "Загрузить конфиг WireGuard",
+            or self.style().standardIcon(
+                QStyle.StandardPixmap.SP_FileDialogNewFolder
+            ),
+            "Load WireGuard config",
             self._load_config,
         )
 
         self.info_button = QPushButton("⋯")
         self.info_button.setFixedSize(28, 28)
         self.info_button.setEnabled(False)
-        self.info_button.setToolTip("Информация об активном подключении")
+        self.info_button.setToolTip("Active connection info")
         self.info_button.clicked.connect(self._show_active_info)
         top.addWidget(self.info_button)
 
         root.addLayout(top)
 
-        # список
+        # list
         self.list_widget = QListWidget()
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self._show_ctx_menu)
+        self.list_widget.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.list_widget.customContextMenuRequested.connect(
+            self._show_ctx_menu
+        )
         root.addWidget(self.list_widget)
 
-        # нижние кнопки
-        self.run_app_button = QPushButton("Запустить приложение вне VPN")
+        # bottom buttons
+        self.run_app_button = QPushButton("Launch app outside VPN")
         self.run_app_button.clicked.connect(self._show_app_launcher)
         root.addWidget(self.run_app_button)
 
-        self.connect_btn = QPushButton("Подключиться")
+        self.connect_btn = QPushButton("Connect")
         self.connect_btn.clicked.connect(self._connect_selected)
         root.addWidget(self.connect_btn)
 
-        self.disconnect_btn = QPushButton("Отключиться")
+        self.disconnect_btn = QPushButton("Disconnect")
         self.disconnect_btn.clicked.connect(self._disconnect_selected)
         root.addWidget(self.disconnect_btn)
 
-        # начальные данные + таймер
+        # initial data + timer
         self._refresh()
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_status)
         self.timer.start(3_000)
 
-    # ───────── вспомогательные ───────── #
+    # ───────── helpers ───────── #
     def _populate(self, tunnels: list[str]) -> None:
         self.list_widget.clear()
         for name in tunnels:
@@ -139,7 +145,7 @@ class MainWindow(QWidget):
         item = self.list_widget.currentItem()
         return self.list_widget.itemWidget(item) if item else None  # type: ignore[return-value]
 
-    # ───────── контекстное меню ───────── #
+    # ───────── context menu ───────── #
     def _show_ctx_menu(self, pos) -> None:
         item = self.list_widget.itemAt(pos)
         if not item:
@@ -150,11 +156,11 @@ class MainWindow(QWidget):
         name = row.orig_name
 
         menu = QMenu(self)
-        a_up = menu.addAction("Подключиться")
-        a_down = menu.addAction("Отключиться")
+        a_up = menu.addAction("Connect")
+        a_down = menu.addAction("Disconnect")
         menu.addSeparator()
-        a_ren = menu.addAction("Переименовать…")
-        a_edit = menu.addAction("Изменить конфиг…")
+        a_ren = menu.addAction("Rename…")
+        a_edit = menu.addAction("Edit config…")
 
         act = menu.exec(self.list_widget.viewport().mapToGlobal(pos))
         if act is None:
@@ -168,46 +174,48 @@ class MainWindow(QWidget):
         elif act is a_edit:
             self._edit(name)
 
-    # ───────── действия ───────── #
+    # ───────── actions ───────── #
     def _connect(self, name: str) -> None:
         try:
             self.wg.connect(name)
         except Exception as e:  # pylint: disable=broad-except
-            self.status_label.setText(f"Ошибка подключения: {e}")
+            self.status_label.setText(f"Connection error: {e}")
         self._update_status()
 
     def _disconnect(self, name: str) -> None:
         try:
             self.wg.disconnect(name)
         except Exception as e:  # pylint: disable=broad-except
-            self.status_label.setText(f"Ошибка отключения: {e}")
+            self.status_label.setText(f"Disconnection error: {e}")
         self._update_status()
 
     def _rename(self, old: str) -> None:
-        new, ok = QInputDialog.getText(self, "Переименование", "Новое имя:", text=old)
+        new, ok = QInputDialog.getText(self, "Rename", "New name:", text=old)
         if not ok or not new or new == old:
             return
         if not WireGuard.VALID_WG_NAME.fullmatch(new):
-            QMessageBox.warning(self, "WireGuard", "Недопустимое имя.")
+            QMessageBox.warning(self, "WireGuard", "Invalid name.")
             return
         _, err = _run_command(
             ["mv", f"/etc/wireguard/{old}.conf", f"/etc/wireguard/{new}.conf"],
             use_root=True,
         )
         if err:
-            QMessageBox.critical(self, "WireGuard", f"Ошибка: {err}")
+            QMessageBox.critical(self, "WireGuard", f"Error: {err}")
         else:
-            self.status_label.setText("Файл переименован.")
+            self.status_label.setText("File renamed.")
             self._refresh()
 
     def _edit(self, name: str) -> None:
         conf = Path("/etc/wireguard") / f"{name}.conf"
         _, err = _run_command(["test", "-e", str(conf)], use_root=True)
         if err:
-            QMessageBox.warning(self, "WireGuard", "Файл не найден или нет доступа.")
+            QMessageBox.warning(
+                self, "WireGuard", "File not found or no access."
+            )
             return
 
-        # 1. Открываем БЕЗ root, но через GVFS-backend admin://
+        # 1. Open WITHOUT root via GVFS backend admin://
 
         cmd = [
             "env",
@@ -221,10 +229,10 @@ class MainWindow(QWidget):
 
         if err:
             QMessageBox.critical(
-                self, "WireGuard", "Не удалось запустить редактор.\n" + err
+                self, "WireGuard", "Failed to start editor.\n" + err
             )
 
-    # ───────── слоты UI ───────── #
+    # ───────── UI slots ───────── #
     def _connect_selected(self) -> None:
         row = self._current_row()
         if row:
@@ -237,18 +245,18 @@ class MainWindow(QWidget):
 
     def _load_config(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Выберите конфиг WireGuard", "", "WireGuard (*.conf)"
+            self, "Select WireGuard config", "", "WireGuard (*.conf)"
         )
         if not path:
             return
         try:
             self.wg.load_config(path)
-            self.status_label.setText("Конфиг загружен.")
+            self.status_label.setText("Config loaded.")
         except Exception as e:  # pylint: disable=broad-except
             self.status_label.setText(str(e))
         self._refresh()
 
-    # ───────── обновление списка/статуса ───────── #
+    # ───────── refresh list/status ───────── #
     def _refresh(self) -> None:
         try:
             self._populate(self.wg.list_configs())
@@ -264,17 +272,21 @@ class MainWindow(QWidget):
             if isinstance(row, TunnelRow):
                 row.mark_active(row.orig_name in active)
         self.status_label.setText(
-            f"Статус: Подключено к {', '.join(active)}"
+            f"Status: connected to {', '.join(active)}"
             if active
-            else "Статус: Не подключено"
+            else "Status: not connected"
         )
 
     def _show_active_info(self) -> None:
         active = self.wg.active_interfaces()
         if not active:
-            QMessageBox.information(self, "WireGuard", "Нет активных подключений.")
+            QMessageBox.information(
+                self, "WireGuard", "No active connections."
+            )
             return
-        QMessageBox.information(self, "WireGuard", self.wg.tunnel_info(active[0]))
+        QMessageBox.information(
+            self, "WireGuard", self.wg.tunnel_info(active[0])
+        )
 
     def _show_app_launcher(self) -> None:
         dialog = AppLauncherDialog(self)

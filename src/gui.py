@@ -158,6 +158,7 @@ class MainWindow(QWidget):
         menu.addSeparator()
         a_ren = menu.addAction("Rename…")
         a_edit = menu.addAction("Edit config…")
+        a_delete = menu.addAction("Delete")
 
         act = menu.exec(self.list_widget.viewport().mapToGlobal(pos))
         if act is None:
@@ -170,6 +171,8 @@ class MainWindow(QWidget):
             self._rename(name)
         elif act is a_edit:
             self._edit(name)
+        elif act is a_delete:
+            self._delete(name)
 
     # ───────── actions ───────── #
     def _connect(self, name: str) -> None:
@@ -228,6 +231,27 @@ class MainWindow(QWidget):
 
         if err:
             QMessageBox.critical(self, "WireGuard", "Failed to start editor.\n" + err)
+
+    def _delete(self, name: str) -> None:
+        conf = Path("/etc/wireguard") / f"{name}.conf"
+        _, err = _run_command(["test", "-e", str(conf)], use_root=True)
+        if err:
+            QMessageBox.warning(self, "WireGuard", "File not found or no access.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "WireGuard",
+            f"Delete {name} configuration?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            _, err = _run_command(["rm", "-f", str(conf)], use_root=True)
+            if err:
+                QMessageBox.critical(self, "WireGuard", f"Error deleting file: {err}")
+            else:
+                self.status_label.setText("Configuration deleted.")
+                self._refresh()
 
     # ───────── UI slots ───────── #
     def _connect_selected(self) -> None:
